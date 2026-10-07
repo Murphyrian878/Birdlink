@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BirdLink: a feeder that is empty until you ask</title>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f1f5ef;--ink:#14222b;--mute:#4d5f69;--dawn:#1f3a4d;--moss:#2f5d3a;--seed:#d9a92e;--line:#c9d4cb;--panel:#e4ece3;--on-dawn:#f1f5ef;
+  --serif:"Young Serif",Georgia,"Times New Roman",serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a20;--ink:#e6eee6;--mute:#9db0b8;--dawn:#0b141a;--moss:#7fb98d;--seed:#e6b94a;--line:#2a3b44;--panel:#18262e;--on-dawn:#e6eee6}}
+:root[data-theme="dark"]{--bg:#101a20;--ink:#e6eee6;--mute:#9db0b8;--dawn:#0b141a;--moss:#7fb98d;--seed:#e6b94a;--line:#2a3b44;--panel:#18262e;--on-dawn:#e6eee6}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1.0625rem/1.6 var(--sans)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--seed);outline-offset:3px}
+.wrap{max-width:68rem;margin:0 auto;padding:0 1.25rem}
+nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 0;gap:1rem;flex-wrap:wrap}
+nav b{font:1.35rem var(--serif)}
+nav ul{display:flex;gap:1.25rem;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+nav a{text-decoration:none;font-weight:500}
+nav a:hover{text-decoration:underline}
+.hero{background:var(--dawn);color:var(--on-dawn)}
+.hero nav a,.hero nav b{color:var(--on-dawn)}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:2.5rem;align-items:center;padding:2.5rem 0 4rem}
+h1{font:clamp(2.2rem,5.5vw,3.8rem)/1.08 var(--serif);margin:0 0 1.2rem;font-weight:400}
+.lede{font-size:1.2rem;max-width:34rem;opacity:.92;margin:0 0 1.5rem}
+h2{font:clamp(1.6rem,3.5vw,2.2rem)/1.15 var(--serif);font-weight:400;margin:0 0 1rem}
+h3{font-size:1.1rem;margin:0 0 .35rem}
+section{padding:3.5rem 0}
+.demo{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:1.25rem;text-align:center}
+.demo svg{width:100%;max-width:20rem;height:auto}
+.btn{font:700 1rem var(--sans);background:var(--seed);color:#14222b;border:0;border-radius:8px;padding:.8rem 1.4rem;cursor:pointer;min-height:44px}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.status{min-height:3rem;margin:.8rem 0 0;font-size:.95rem}
+.seed{fill:var(--seed);opacity:0}
+.seed.drop{animation:fall .9s ease-in forwards}
+@keyframes fall{0%{opacity:1;transform:translateY(-70px)}80%{opacity:1}100%{opacity:1;transform:translateY(0)}}
+.seed.rest{opacity:1}
+.seed.gone{opacity:0;transition:opacity 1.2s}
+@media (prefers-reduced-motion:reduce){.seed.drop{animation:none;opacity:1}}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;list-style:none;padding:0;margin:1.5rem 0 0;counter-reset:s}
+.steps li{border-top:4px solid var(--moss);padding-top:.8rem;counter-increment:s}
+.steps li::before{content:"Step " counter(s);display:block;font-weight:700;color:var(--moss);font-size:.9rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin:1.5rem 0}
+.fact{background:var(--panel);padding:1.1rem;border-radius:6px}
+.fact strong{font:2rem var(--serif);display:block;color:var(--moss)}
+.rules{padding:0;list-style:none;margin:0}
+.rules li{padding:.7rem 0;border-bottom:1px solid var(--line)}
+.rules li:last-child{border:0}
+.note{background:var(--panel);border-left:4px solid var(--seed);padding:1rem 1.2rem;border-radius:0 6px 6px 0;margin-top:1.5rem}
+.split{display:flex;height:2.6rem;border-radius:6px;overflow:hidden;margin:1rem 0 .5rem;font-weight:700;font-size:.9rem}
+.split span{display:flex;align-items:center;padding:0 .8rem}
+.split .s{background:var(--seed);color:#14222b;flex:1}
+.split .c{background:var(--moss);color:var(--bg);flex:3}
+.table-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:34rem}
+th,td{text-align:left;padding:.7rem .8rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:700}
+footer{background:var(--dawn);color:var(--on-dawn);padding:2.5rem 0;font-size:.95rem}
+footer p{max-width:44rem;margin:.3rem 0}
+
+.up{background:var(--panel);border:2px dashed var(--line);border-radius:10px;padding:1.5rem;text-align:center}
+.up input{max-width:100%}
+.thumbs{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin:1rem 0}
+.thumbs img{height:5.5rem;border-radius:4px;border:1px solid var(--line)}
+.btn2{font:700 1rem var(--sans);background:var(--moss);color:var(--bg);border:0;border-radius:8px;padding:.8rem 1.4rem;cursor:pointer;min-height:44px}
+.btn2:disabled{opacity:.6;cursor:not-allowed}
+.btn2.alt{background:transparent;color:var(--ink);border:2px solid var(--moss)}
+.bird{border:1px solid var(--line);border-radius:8px;padding:1.1rem;margin:1rem 0;background:var(--bg)}
+.bird h3{font:1.35rem var(--serif);margin:0}
+.bird .sci{color:var(--mute);font-style:italic;margin:0 0 .5rem}
+.bird ul{margin:.5rem 0 .8rem;padding-left:1.2rem}
+.fix{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:.8rem}
+.fix select{font:inherit;padding:.5rem;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:44px}
+.warn{border-left:4px solid #b4452f;background:var(--panel);padding:.8rem 1rem;border-radius:0 6px 6px 0;margin:1rem 0}
+.small{font-size:.9rem;color:var(--mute)}
+@media (max-width:760px){.hero-grid,.two,.facts{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:460px){.steps{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+<div class="wrap">
+<nav aria-label="Main"><b>BirdLink</b>
+<ul><li><a href="#how">How it works</a></li><li><a href="#identify">Identify</a></li><li><a href="#safety">Feeding safety</a></li><li><a href="#research">Research</a></li><li><a href="#giving">Giving</a></li></ul></nav>
+<div class="hero-grid">
+<div>
+<h1>A feeder that is empty until you ask.</h1>
+<p class="lede">BirdLink gives garden birds one small portion at a time, films every visit, and helps you work out who came. Feeds cost a small fee, and what is left after seed goes to BirdWatch Ireland.</p>
+<a class="btn" href="#how" style="text-decoration:none;display:inline-block;line-height:1.6">See how it works</a>
+</div>
+<div class="demo">
+<svg viewBox="0 0 240 170" role="img" aria-label="A feeder tray receiving a portion of seed">
+<rect x="0" y="0" width="240" height="170" fill="none"/>
+<rect x="105" y="10" width="30" height="46" rx="4" fill="#8fa4ad"/>
+<rect x="112" y="52" width="16" height="8" fill="#6b808a"/>
+<path d="M40 130 Q120 160 200 130 L190 118 Q120 140 50 118 Z" fill="#5c4a36"/>
+<rect x="116" y="150" width="8" height="20" fill="#5c4a36"/>
+<g id="seeds"></g>
+</svg>
+<p class="status" id="status" role="status" aria-live="polite">Tray is empty. Try a practice feed.</p>
+<button class="btn" id="feed" type="button">Request a feed</button>
+</div>
+</div>
+</div>
+</header>
+
+<main>
+<section id="how"><div class="wrap">
+<h2>From seed to species</h2>
+<ol class="steps">
+<li><h3>Request a feed</h3><p>Pay a small fee on this site. The feeder releases a single portion.</p></li>
+<li><h3>Birds visit</h3><p>A motion sensor starts the camera. The tray is cleared again after the feed.</p></li>
+<li><h3>Upload the clip</h3><p>Add your recording to the site and an AI suggests which species it saw.</p></li>
+<li><h3>Check and correct</h3><p>Fix any wrong ID. Your corrections build a verified Irish garden bird dataset.</p></li>
+</ol>
+<div class="note"><strong>Status:</strong> BirdLink is a research prototype. Clip identification below works now. Live feed controls and payments are still being built, and the feed button above is a practice demo only.</div>
+</div></section>
+
+
+<section id="identify" style="background:var(--panel)"><div class="wrap">
+<h2>Identify the birds in your clip</h2>
+<p style="max-width:42rem">Choose a video or photo from your feeder. The page picks a few frames and asks Claude which species appear. It is a suggestion, not a certainty, so please correct it when it is wrong. Corrections are how we measure accuracy.</p>
+<div class="note" id="consent" style="margin:0 0 1.2rem">
+<strong>Before you start</strong>
+<ul style="margin:.5rem 0;padding-left:1.2rem">
+<li>Up to four frames from your clip are sent to Claude, on your own account, to suggest species. The full video stays in your browser.</li>
+<li>If you choose to share, each answer you give is saved: the clip file name, the suggested and corrected species, the AI's confidence, the time, and an anonymous ID. No video or images are saved.</li>
+<li>Shared answers are used to measure how accurate AI identification is and to build a verified dataset of Irish garden bird identifications.</li>
+<li>Please do not put names, addresses or other personal details in file names.</li>
+</ul>
+<label><input type="checkbox" id="share"> Share my answers with the BirdLink research database</label>
+<p class="small" style="margin:.4rem 0 0">Sharing is optional. If you leave it unticked you still get identifications, and you can download your own answers as a CSV. Final privacy notice and contact details will be added before launch.</p>
+</div>
+<div class="up">
+<label for="clip"><strong>Choose a clip or photo</strong></label><br>
+<input id="clip" type="file" accept="video/*,image/*">
+<div class="thumbs" id="thumbs" aria-label="Frames to be analysed"></div>
+<button class="btn2" id="go" type="button" disabled>Identify birds</button>
+<button class="btn2 alt" id="stop" type="button" hidden>Stop</button>
+<p class="small" id="msg" role="status" aria-live="polite">No clip chosen yet.</p>
+</div>
+<div id="out"></div>
+<div id="fixbar" hidden style="margin-top:1rem">
+<span id="fixcount" class="small"></span>
+<button class="btn2 alt" id="dl" type="button">Download corrections (CSV)</button>
+</div>
+<p class="small" style="margin-top:1rem">Identification runs on your own Claude account and may ask your permission the first time. Your clip stays in your browser: only the chosen frames are sent for analysis. Your answers are saved to the BirdLink corrections database when you are signed in, and you can always download them as a CSV.</p>
+</div></section>
+
+<section id="results" hidden><div class="wrap">
+<h2>Identification results (editors only)</h2>
+<p class="small" id="rsum">Loading corrections...</p>
+<div class="table-scroll"><table><thead><tr><th>Species suggested</th><th>Answers</th><th>Confirmed correct</th><th>Accuracy</th><th>Most often corrected to</th></tr></thead><tbody id="rbody"></tbody></table></div>
+<h3 style="margin-top:1.5rem">By stated confidence</h3>
+<div class="table-scroll"><table><thead><tr><th>Confidence</th><th>Answers</th><th>Accuracy</th></tr></thead><tbody id="cbody"></tbody></table></div>
+<h3 style="margin-top:1.5rem">Expert-labelled test set</h3>
+<p class="small" style="max-width:42rem">Add a clip or photo whose species you know, choose the true species, and run the AI on it. This gives accuracy against a trusted label rather than user clicks. Only editors can add test items.</p>
+<div class="fix" style="border:0;padding:0">
+<label for="bfile">Clip or photo</label><input id="bfile" type="file" accept="video/*,image/*">
+<label for="btruth">True species</label><select id="btruth"></select>
+<button class="btn2" id="brun" type="button">Run test</button>
+</div>
+<p class="small" id="bmsg" role="status" aria-live="polite"></p>
+<div class="table-scroll"><table><thead><tr><th>True species</th><th>Tests</th><th>AI correct</th><th>Accuracy</th><th>Most common wrong answer</th></tr></thead><tbody id="bbody"></tbody></table></div>
+<p class="small" id="bsum"></p>
+<p><button class="btn2 alt" id="rdl" type="button" style="margin-top:1rem">Download all corrections (CSV)</button></p>
+</div></section>
+
+<section id="why" style="background:var(--bg)" style="background:var(--panel)"><div class="wrap">
+<h2>Why not just fill a feeder?</h2>
+<p style="max-width:42rem">Trichomonosis is a fatal finch disease spread through shared food and water. Permanent feeders crowd birds onto the same contaminated surfaces. BirdWatch Ireland now advises taking feeders down from 1 May to 31 October.</p>
+<div class="facts">
+<div class="fact"><strong>50%+</strong>decline in breeding and wintering Greenfinch since 2005</div>
+<div class="fact"><strong>30%+</strong>fewer Greenfinch garden visits than a decade ago</div>
+<div class="fact"><strong>13%</strong>decline for Chaffinch</div>
+</div>
+<p style="max-width:42rem">No research has tested whether portioned, monitored feeding carries the same risk as permanent feeding. BirdLink is built to find out.</p>
+</div></section>
+
+<section id="safety" style="background:var(--panel)"><div class="wrap two">
+<div>
+<h2>Feeding safety protocol</h2>
+<p>Every rule below is built into the feeder logic, not left to chance.</p>
+</div>
+<ul class="rules">
+<li><h3>Rate-limited</h3>Only one feed can be requested at a time, with a wait before the next.</li>
+<li><h3>Daylight only</h3>No feeds are released at night.</li>
+<li><h3>Daily cap</h3>The feeder stops once its daily limit is reached, following BirdWatch Ireland guidance.</li>
+<li><h3>Scheduled cleaning</h3>The tray and dispenser are cleaned on a fixed schedule.</li>
+<li><h3>Remote suspension</h3>Feeding is switched off if disease is reported locally.</li>
+</ul>
+</div></section>
+
+<section id="research"><div class="wrap">
+<h2>What we are testing</h2>
+<div class="table-scroll"><table>
+<thead><tr><th>Test</th><th>How it works</th></tr></thead>
+<tbody>
+<tr><td>Identification accuracy</td><td>Users correct wrong IDs. The correction rate measures accuracy across species and image quality.</td></tr>
+<tr><td>Engagement</td><td>Short surveys before and after using BirdLink, compared with species recorded, uploads and return visits.</td></tr>
+<tr><td>Disease monitoring</td><td>Every visit is recorded, so sick-bird signs are logged and reported to the Irish Garden Bird Survey's sick finch scheme.</td></tr>
+<tr><td>Donation measurement</td><td>Frequency and value of donations show whether interaction turns into giving.</td></tr>
+</tbody></table></div>
+<p style="max-width:42rem;margin-top:1.5rem">We expect to learn whether remote interaction increases engagement with local birds, how much a small-fee feeder can raise for charity, how well a general-purpose vision model identifies Irish garden birds, and whether portioned feeding can be run within BirdWatch Ireland's disease guidance.</p>
+</div></section>
+
+<section id="giving" style="background:var(--panel)"><div class="wrap two">
+<div>
+<h2>Where your fee goes</h2>
+<p>The fee covers seed. The rest goes to BirdWatch Ireland, the charity whose survey data this project relies on.</p>
+<div class="split" role="img" aria-label="Fee covers seed first, remainder goes to BirdWatch Ireland"><span class="s">Seed</span><span class="c">BirdWatch Ireland</span></div>
+<p style="font-size:.9rem;color:var(--mute)">Illustrative split. Final amounts will be published before launch.</p>
+</div>
+<div>
+<h2>Who it is for</h2>
+<p>Schools, nature reserves and community groups can use BirdLink to make local biodiversity visible and to link it to fundraising for bird conservation.</p>
+</div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+<b style="font:1.2rem var(--serif)">BirdLink</b>
+<p>An Irish research project on portioned, monitored garden bird feeding. Not affiliated with BirdWatch Ireland unless stated. Survey figures are from BirdWatch Ireland.</p>
+</div></footer>
+
+<script>
+(function(){
+  var btn=document.getElementById('feed'),st=document.getElementById('status'),g=document.getElementById('seeds');
+  var NS='http://www.w3.org/2000/svg',wait=10,timer;
+  function dispense(){
+    g.innerHTML='';
+    var xs=[88,102,116,128,140,152,164,110,134,122];
+    var seeds=xs.map(function(x,i){
+      var c=document.createElementNS(NS,'ellipse');
+      c.setAttribute('cx',x);c.setAttribute('cy',126+Math.round(Math.sin(i*2)*3));
+      c.setAttribute('rx',4);c.setAttribute('ry',2.5);c.setAttribute('class','seed');
+      c.style.animationDelay=(i*0.06)+'s';g.appendChild(c);return c;
+    });
+    seeds.forEach(function(s){s.classList.add('drop')});
+    setTimeout(function(){seeds.forEach(function(s){s.classList.remove('drop');s.classList.add('rest')})},1600);
+    setTimeout(function(){seeds.forEach(function(s){s.classList.add('gone')});st.textContent='Tray cleared. Empty again.'},6000);
+  }
+  btn.addEventListener('click',function(){
+    btn.disabled=true;dispense();
+    var n=wait;st.textContent='One portion released. Next feed in '+n+' s.';
+    clearInterval(timer);
+    timer=setInterval(function(){
+      n--;
+      if(n<=0){clearInterval(timer);btn.disabled=false;st.textContent='Ready for another practice feed.';}
+      else if(n<=wait-6){st.textContent='Next feed in '+n+' s.';}
+    },1000);
+  });
+})();
+</script>
+<script>
+(async function(){
+  var SPECIES=["Robin","Blackbird","Song Thrush","Blue Tit","Great Tit","Coal Tit","Long-tailed Tit","Chaffinch","Greenfinch","Goldfinch","Siskin","Bullfinch","House Sparrow","Dunnock","Wren","Starling","Collared Dove","Woodpigeon","Magpie","Jackdaw","Hooded Crow","Other / not sure","No bird visible"];
+  var $=function(i){return document.getElementById(i)};
+  var clip=$('clip'),go=$('go'),stop=$('stop'),msg=$('msg'),out=$('out'),thumbs=$('thumbs');
+  var frames=[],name='',fixes=[],ctl=null,sample=null,dl=null,maxN=4;
+  var db=null,usr=null,uid='',share=false;
+  try{ if(window.claude){ sample=await claude.use('sample'); dl=await claude.use('downloads'); try{db=await claude.use('db');usr=await claude.use('user');if(usr&&usr.id)uid=await usr.id();}catch(e){} } }catch(e){sample=null}
+  if(!sample){msg.textContent='Identification needs this page to be opened inside Claude. Try opening the link from claude.ai.';clip.disabled=true;return;}
+  try{var lim=await sample.limits(); if(!lim.images){msg.textContent='Image analysis is not available in this view.';clip.disabled=true;return;} maxN=Math.min(4,lim.images.maxCount);}catch(e){}
+  function showThumbs(){thumbs.innerHTML='';frames.forEach(function(b){var i=document.createElement('img');i.src=URL.createObjectURL(b);i.alt='Selected frame';thumbs.appendChild(i)})}
+  function grab(v,t){return new Promise(function(res,rej){
+    v.onseeked=function(){var c=document.createElement('canvas'),k=Math.min(1,1024/v.videoWidth);c.width=v.videoWidth*k;c.height=v.videoHeight*k;c.getContext('2d').drawImage(v,0,0,c.width,c.height);c.toBlob(function(b){b?res(b):rej()},'image/jpeg',.85)};
+    v.currentTime=t;});}
+  clip.addEventListener('change',async function(){
+    var f=clip.files[0];frames=[];out.innerHTML='';go.disabled=true;thumbs.innerHTML='';if(!f)return;name=f.name;
+    if(f.type.indexOf('image/')===0){frames=[f];showThumbs();go.disabled=false;msg.textContent='Photo ready.';return;}
+    msg.textContent='Picking frames from your video...';
+    var v=document.createElement('video');v.muted=true;v.preload='auto';v.src=URL.createObjectURL(f);
+    try{
+      await new Promise(function(res,rej){v.onloadedmetadata=res;v.onerror=rej});
+      var d=v.duration||1;
+      for(var i=1;i<=maxN;i++){frames.push(await grab(v,d*i/(maxN+1)))}
+      showThumbs();go.disabled=false;msg.textContent=frames.length+' frames ready.';
+    }catch(e){frames=[];msg.textContent='This browser could not read that video. Try a photo, or a different video format such as MP4.';}
+  });
+  var ERR={not_granted:'Permission was declined, so nothing was analysed.',rate_limited:'Too many requests. Wait a moment and try again.',images_unavailable:'Image analysis is not available in this view.',image_rejected:'That image could not be used. Try a smaller or different file.',invalid_json:'The answer could not be read. Please try again.',cancelled:'Stopped.'};
+  go.addEventListener('click',async function(){
+    if(!frames.length)return;
+    ctl=new AbortController();go.disabled=true;stop.hidden=false;out.innerHTML='';msg.textContent='Thinking...';
+    var prompt=buildPrompt(frames.length);
+    try{
+      var r=await sample.json(prompt,{images:frames,signal:ctl.signal,modelTier:'default'});
+      render(r);msg.textContent='Done. Please check the result and correct it if needed.';
+    }catch(e){msg.textContent=ERR[e.code]||'Something went wrong. Please try again.';}
+    go.disabled=false;stop.hidden=true;
+  });
+  stop.addEventListener('click',function(){if(ctl)ctl.abort()});
+
+  var shEl=$('share');try{share=localStorage.getItem('bl_share')==='1'}catch(e){}shEl.checked=share;
+  shEl.addEventListener('change',function(){share=shEl.checked;try{localStorage.setItem('bl_share',share?'1':'0')}catch(e){}});
+  async function record(b,r,corrected,btn){
+    var e={clip:share?name:'',suggested:String(b.species||''),corrected:corrected,confidence:String(b.confidence||''),quality:String((r&&r.quality)||''),time:new Date().toISOString(),user:uid};
+    fixes.push(e);count();btn.textContent='Saved';
+    if(db&&share){try{await db.collection('corrections').add(e);btn.textContent='Saved to database';}catch(x){btn.textContent='Saved here only';}}else{btn.textContent='Saved here only (not shared)';}
+  }
+  function pct(a,n){return n?Math.round(100*a/n)+'%':'-'}
+  function cell(tr,t){var d=document.createElement('td');d.textContent=t;tr.appendChild(d)}
+  var allRows=[];
+  function summarise(rows){
+    allRows=rows;
+    var sp={},cf={};
+    rows.forEach(function(e){
+      var o=sp[e.suggested]||(sp[e.suggested]={n:0,ok:0,to:{}});o.n++;
+      if(e.suggested===e.corrected)o.ok++;else o.to[e.corrected]=(o.to[e.corrected]||0)+1;
+      var c=cf[e.confidence||'unknown']||(cf[e.confidence||'unknown']={n:0,ok:0});c.n++;if(e.suggested===e.corrected)c.ok++;
+    });
+    var tb=$('rbody');tb.innerHTML='';
+    Object.keys(sp).sort(function(a,b){return sp[b].n-sp[a].n}).forEach(function(k){
+      var o=sp[k],tr=document.createElement('tr'),top=Object.keys(o.to).sort(function(a,b){return o.to[b]-o.to[a]})[0];
+      cell(tr,k);cell(tr,o.n);cell(tr,o.ok);cell(tr,pct(o.ok,o.n));cell(tr,top?top+' ('+o.to[top]+')':'-');tb.appendChild(tr);
+    });
+    var cb=$('cbody');cb.innerHTML='';
+    ['high','medium','low','unknown'].forEach(function(k){if(!cf[k])return;var tr=document.createElement('tr');cell(tr,k);cell(tr,cf[k].n);cell(tr,pct(cf[k].ok,cf[k].n));cb.appendChild(tr)});
+    var ok=rows.filter(function(e){return e.suggested===e.corrected}).length;
+    $('rsum').textContent=rows.length+' answers recorded. Overall, '+pct(ok,rows.length)+' of AI suggestions were confirmed correct. Small samples are unreliable, so treat species with few answers with caution.';
+  }
+  if(db&&usr&&usr.canEdit&&usr.canEdit()){
+    $('results').hidden=false;
+    try{db.collection('corrections').onSnapshot(function(snap){summarise(snap.docs.map(function(d){return d.data()}))},function(){$('rsum').textContent='Could not load corrections.'});}catch(e){$('rsum').textContent='Could not load corrections.'}
+
+    var bs=$('btruth');SPECIES.forEach(function(x){var o=document.createElement('option');o.textContent=x;bs.appendChild(o)});
+    async function getFrames(f){
+      if(f.type.indexOf('image/')===0)return [f];
+      var v=document.createElement('video');v.muted=true;v.preload='auto';v.src=URL.createObjectURL(f);
+      await new Promise(function(res,rej){v.onloadedmetadata=res;v.onerror=rej});
+      var d=v.duration||1,fr=[];for(var i=1;i<=maxN;i++){fr.push(await grab(v,d*i/(maxN+1)))}return fr;
+    }
+    $('brun').addEventListener('click',async function(){
+      var f=$('bfile').files[0],m=$('bmsg');if(!f){m.textContent='Choose a clip or photo first.';return;}
+      var btn=$('brun');btn.disabled=true;m.textContent='Thinking...';
+      try{
+        var fr=await getFrames(f);
+        var r=await sample.json(buildPrompt(fr.length),{images:fr});
+        var preds=(r&&Array.isArray(r.birds)?r.birds:[]).map(function(b){return String(b.species||'')});
+        var truth=bs.value,hit=preds.some(function(x){return x.toLowerCase()===truth.toLowerCase()})||(truth==='No bird visible'&&!preds.length);
+        await db.collection('benchmark').add({truth:truth,predicted:preds.join('; ')||'No bird visible',correct:hit,quality:String((r&&r.quality)||''),clip:f.name,time:new Date().toISOString(),user:uid});
+        m.textContent=(hit?'AI matched the expert label. ':'AI did not match. It said: '+(preds.join(', ')||'no bird')+'. ')+'Result saved.';
+      }catch(e){m.textContent=ERR[e.code]||'Could not run that test. Try a photo or an MP4.';}
+      btn.disabled=false;
+    });
+    var bRows=[];
+    function bsummarise(rows){
+      bRows=rows;var sp={};
+      rows.forEach(function(e){var o=sp[e.truth]||(sp[e.truth]={n:0,ok:0,w:{}});o.n++;if(e.correct)o.ok++;else o.w[e.predicted]=(o.w[e.predicted]||0)+1});
+      var tb=$('bbody');tb.innerHTML='';
+      Object.keys(sp).sort(function(a,b){return sp[b].n-sp[a].n}).forEach(function(k){var o=sp[k],tr=document.createElement('tr'),top=Object.keys(o.w).sort(function(a,b){return o.w[b]-o.w[a]})[0];cell(tr,k);cell(tr,o.n);cell(tr,o.ok);cell(tr,pct(o.ok,o.n));cell(tr,top||'-');tb.appendChild(tr)});
+      var ok=rows.filter(function(e){return e.correct}).length;
+      $('bsum').textContent=rows.length?('Against expert labels: '+pct(ok,rows.length)+' correct across '+rows.length+' tests. Compare this with the user-confirmed rate above.'):'No expert-labelled tests yet.';
+    }
+    try{db.collection('benchmark').onSnapshot(function(snap){bsummarise(snap.docs.map(function(d){return d.data()}))})}catch(e){}
+    $('rdl').addEventListener('click',async function(){
+      if(!dl)return;var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'};
+      var rows=['clip,suggested,corrected,confidence,quality,time,user'].concat(allRows.map(function(f){return [f.clip,f.suggested,f.corrected,f.confidence,f.quality,f.time,f.user].map(q).join(',')}));
+      try{await dl.save({filename:'birdlink-all-corrections.csv',data:rows.join('\n')})}catch(e){}
+    });
+  }
+  function buildPrompt(n){return 'You are helping identify birds at a garden feeder in Ireland. The attached images are '+n+' frames from one clip, in time order. Identify each bird species visible. Prefer species from this list when they fit: '+SPECIES.slice(0,21).join(', ')+'. Be honest about uncertainty and image quality. Also note any signs that might suggest a sick bird (fluffed up, lethargic, swollen or crusted eyes, laboured breathing, difficulty swallowing); describe them as possible signs, never a diagnosis. Reply with only JSON: {"quality":"good|fair|poor","birds":[{"species":"Common name","scientific":"Latin name","confidence":"high|medium|low","reason":"one sentence on what you saw","facts":["two or three short facts about the species, including its Irish status"]}],"possibleSickSigns":"text or empty string","notes":"one sentence"}. If there is no bird, return an empty birds array.';}
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+  function render(r){
+    out.innerHTML='';
+    var birds=(r&&Array.isArray(r.birds))?r.birds:[];
+    if(!birds.length)out.appendChild(el('p',null,'No bird found in these frames. '+((r&&r.notes)||'Try a clip where the bird is closer to the camera.')));
+    birds.forEach(function(b){
+      var c=el('div','bird');
+      c.appendChild(el('h3',null,String(b.species||'Unknown')));
+      c.appendChild(el('p','sci',String(b.scientific||'')+' · '+String(b.confidence||'unknown')+' confidence'));
+      if(b.reason)c.appendChild(el('p',null,String(b.reason)));
+      var ul=el('ul');(Array.isArray(b.facts)?b.facts:[]).slice(0,3).forEach(function(f){ul.appendChild(el('li',null,String(f)))});c.appendChild(ul);
+      var fx=el('div','fix');var lab=el('label',null,'Wrong? Pick the right one:');var sel=el('select');
+      var id='sel'+Math.random().toString(36).slice(2);sel.id=id;lab.htmlFor=id;
+      SPECIES.forEach(function(x){var o=el('option',null,x);sel.appendChild(o)});
+      var ok=el('button','btn2 alt','Save correction');ok.type='button';
+      ok.addEventListener('click',function(){record(b,r,sel.value,ok);ok.disabled=true;right.disabled=true});
+      var right=el('button','btn2 alt','This is right');right.type='button';
+      right.addEventListener('click',function(){record(b,r,String(b.species||''),right);ok.disabled=true;right.disabled=true});
+      fx.appendChild(right);fx.appendChild(lab);fx.appendChild(sel);fx.appendChild(ok);c.appendChild(fx);out.appendChild(c);
+    });
+    if(r&&r.possibleSickSigns){var w=el('div','warn');w.appendChild(el('strong',null,'Possible signs of illness: '));w.appendChild(document.createTextNode(String(r.possibleSickSigns)+' This is not a diagnosis. If you see a sick bird, report it through the Irish Garden Bird Survey sick finch scheme and stop feeding locally.'));out.appendChild(w);}
+    if(r&&r.quality)out.appendChild(el('p','small','Image quality: '+String(r.quality)+(r.notes?'. '+String(r.notes):'')));
+  }
+  function count(){$('fixbar').hidden=false;var ok=fixes.filter(function(f){return f.suggested===f.corrected}).length;$('fixcount').textContent=fixes.length+' answers recorded, '+ok+' confirmed correct. '}
+  $('dl').addEventListener('click',async function(){
+    if(!dl){msg.textContent='Downloads are not available in this view.';return;}
+    var q=function(v){return '"'+String(v).replace(/"/g,'""')+'"'};
+    var rows=['clip,suggested,corrected,time'].concat(fixes.map(function(f){return [f.clip,f.suggested,f.corrected,f.time].map(q).join(',')}));
+    try{await dl.save({filename:'birdlink-corrections.csv',data:rows.join('\n')})}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
